@@ -1,0 +1,7 @@
+- name: Restore Ubuntu Snapshot
+  command: timeshift --restore --snapshot "pre_patch"
+  when: ansible_os_family == "Debian"
+
+- name: Restore RHEL LVM Snapshot
+  shell: lvconvert --merge /dev/mapper/rhel-root
+  when: ansible_os_family == "RedHat"
