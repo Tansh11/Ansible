@@ -1,22 +1,48 @@
----
 name: OS Patching with Ansible
+
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch: null
+
 jobs:
   patch-servers:
-    if: github.event_name == 'push' || github.event_name == 'pull_request' ||
-      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-      - name: List Repository Files
+
+      - name: Debug - List Repository Files
         run: ls -lah
-      - name: Present Working Directory
+
+      - name: Debug - Present Working Directory
         run: pwd
+
+      - name: Setup SSH Access
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ANSIBLE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat <<EOF > ~/.ssh/config
+          Host *
+            StrictHostKeyChecking no
+          EOF
+
+      - name: Install Ansible
+        run: |
+          sudo apt update && sudo apt install -y ansible
+
+      - name: Debug - Check Ansible Version
+        run: ansible --version
+
+      - name: Create Inventory File
+        run: |
+          echo "${{ secrets.ANSIBLE_INVENTORY }}" > hosts.ini
+          chmod 600 hosts.ini
+
+      - name: Debug - Test SSH Connection to Servers
+        run: ansible all -i hosts.ini -m ping
+
+      - name: Run Ansible Playbook
+        run: ansible-playbook -i hosts.ini ansible/os-patching-ansible.yaml
