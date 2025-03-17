@@ -1,0 +1,24 @@
+- name: Capture Pre-Patch System Info
+  shell: |
+    echo "Hostname: $(hostname)" > /tmp/pre_patch_info.txt
+    echo "Kernel Version: $(uname -r)" >> /tmp/pre_patch_info.txt
+    df -h >> /tmp/pre_patch_info.txt
+    free -h >> /tmp/pre_patch_info.txt
+
+- name: Apply Security Updates (Ubuntu)
+  apt:
+    upgrade: "yes"
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Apply Security Updates (RHEL)
+  yum:
+    name: "*"
+    state: latest
+    security: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Reboot if Needed (Ubuntu)
+  reboot:
+    reboot_timeout: 600
+  when: ansible_os_family == "Debian" and (ansible_facts['distribution'] == "Ubuntu")
