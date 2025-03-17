@@ -36,14 +36,11 @@ jobs:
       - name: Debug - Check Ansible Version
         run: ansible --version
 
-      - name: Create Inventory File
-        run: |
-          echo "${{ secrets.ANSIBLE_INVENTORY }}" > hosts.ini
-          chmod 600 hosts.ini
+      - name: Ensure Inventory File Exists
+        run: ls -lah ansible/inventory.yml
 
       - name: Debug - Test SSH Connection to Servers
-        run: ansible all -i hosts.ini -m ping
+        run: ansible all -i ansible/inventory.yml -m ping
+
       - name: Run Ansible Playbook
         run: ansible-playbook -i ansible/inventory.yml ansible/os-patching-ansible.yaml
-
-
