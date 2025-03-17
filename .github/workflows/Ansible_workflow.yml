@@ -1,21 +1,22 @@
+---
 name: OS Patching with Ansible
- 
 on:
- push:
- branches:
- - main
- 
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: null
 jobs:
- patch-servers:
- runs-on: ubuntu-latest
- 
- steps:
- - name: Checkout Repository
- uses: actions/checkout@v3
- 
- - name: List Repository Files
- run: ls -lah # Debugging step to verify if the playbook exists
- 
- - name: present working directory
- run: pwd # Debugging step to verify if the playbook exists
- 
+  patch-servers:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      - name: List Repository Files
+        run: ls -lah
+      - name: Present Working Directory
+        run: pwd
