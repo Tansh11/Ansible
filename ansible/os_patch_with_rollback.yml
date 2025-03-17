@@ -1,0 +1,55 @@
+- name: OS Patching with Logging, Rollback & Enhancements
+  hosts: all
+  become: yes
+  vars:
+    patch_report: "/tmp/os_patch_report_{{ inventory_hostname }}.csv"
+    pre_check_report: "/tmp/pre_check_{{ inventory_hostname }}.txt"
+    post_check_report: "/tmp/post_check_{{ inventory_hostname }}.txt"
+    remote_log_server: "192.168.1.200"
+    rollback_enabled: yes
+    snapshot_name: "pre_patch_{{ ansible_date_time.epoch }}"
+    batch_size: 2
+
+  serial: "{{ batch_size }}"
+
+  tasks:
+    - name: Capture system info before patching
+      shell: |
+        echo "Hostname: $(hostname)" > {{ pre_check_report }}
+        echo "Kernel Version: $(uname -r)" >> {{ pre_check_report }}
+        echo "Uptime: $(uptime)" >> {{ pre_check_report }}
+        echo "Disk Usage:" >> {{ pre_check_report }}
+        df -h >> {{ pre_check_report }}
+        echo "RAM Usage:" >> {{ pre_check_report }}
+        free -h >> {{ pre_check_report }}
+      register: pre_check_result
+
+    - name: Install Timeshift on Ubuntu (if missing)
+      apt:
+        name: timeshift
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Apply Ubuntu security updates
+      apt:
+        upgrade: "yes"
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Apply RHEL security updates
+      yum:
+        name: "*"
+        state: latest
+        security: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Check if reboot is required (Ubuntu)
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+      when: ansible_os_family == "Debian"
+
+    - name: Reboot Ubuntu if needed
+      reboot:
+        reboot_timeout: 600
+      when: reboot_required.stat.exists and ansible_os_family == "Debian"
